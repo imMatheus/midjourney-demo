@@ -1,30 +1,80 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useMemo, useRef } from 'react'
 
 interface GridProps {}
 
 export const Grid: React.FC<GridProps> = ({}) => {
   const GRID_COLUMNS = 3
+  const GRID_GAP = 5
   const gridRef = useRef<HTMLDivElement>(null)
 
-  const [columnWidth, setColumnWidth] = useState(0)
+  const gridState = useMemo(() => {
+    if (!gridRef.current) return
 
-  useEffect(() => {
-    if (gridRef.current) {
-      setColumnWidth(gridRef.current.clientWidth / GRID_COLUMNS)
+    const state = {
+      gridColumnHeights: {
+        '0': 0,
+        '1': 0,
+        '2': 0,
+      } as Record<string, number>,
+      images: {} as Record<
+        string,
+        { width: number; height: number; top: number; left: number }
+      >,
     }
-  }, [gridRef.current?.clientWidth]) // Dependency on clientWidth of gridRef
 
-  //   const gridHeightMapRef = useRef({ 0: 0, 1: 0, 2: 0 })
+    res.jobs.forEach((job) => {
+      const minColumn = Object.keys(state.gridColumnHeights).reduce(
+        (acc, key) => {
+          return state.gridColumnHeights[key] < state.gridColumnHeights[acc]
+            ? key
+            : acc
+        }
+      )
+
+      const width =
+        (gridRef.current?.clientWidth ?? 0) / GRID_COLUMNS -
+        GRID_GAP / (GRID_COLUMNS - 1.5)
+      const aspectRatio = job.height / job.width
+      const height = width * aspectRatio
+
+      state.images[job.id] = {
+        width,
+        height,
+        top: state.gridColumnHeights[minColumn],
+        left: (width + GRID_GAP) * Number(minColumn),
+      }
+
+      state.gridColumnHeights[minColumn] += height + GRID_GAP
+
+      console.log(minColumn)
+    })
+
+    return state
+  }, [gridRef.current])
 
   return (
-    <div className="relative" ref={gridRef}>
+    <div
+      className="relative"
+      ref={gridRef}
+      style={{
+        height: gridState?.gridColumnHeights
+          ? `${Math.max(...Object.values(gridState?.gridColumnHeights))}px`
+          : '0px',
+      }}
+    >
       {res.jobs.map((job, index) => {
+        const stateCell = gridState?.images[job.id]
+        if (!stateCell) return null
+
         return (
           <div
             key={job.id}
-            className="absolute"
+            className="absolute rounded-sm overflow-hidden"
             style={{
-              left: `${(index % GRID_COLUMNS) * columnWidth}px`,
+              width: `${stateCell.width}px`,
+              height: `${stateCell.height}px`,
+              left: `${stateCell.left}px`,
+              top: `${stateCell.top}px`,
             }}
           >
             <div className="">
@@ -982,27 +1032,6 @@ const res = {
       published: true,
       username: 'etagenyeti',
       user_id: '454a1283-3406-4418-afae-56b429e72775',
-      service: 'main',
-      parsed_version: '6.0',
-      current_status: 'completed',
-      liked_by_user_in_room: [],
-      room_id: null,
-    },
-    {
-      id: 'e81b7735-38e2-43d7-bf93-ac3ac87000b2',
-      parent_grid: 0,
-      parent_id: '554dd07f-567c-4bed-b2bc-c3a91a4e3cd4',
-      job_type: 'v6_virtual_upsample',
-      event_type: 'diffusion_upsample_v6_virtual',
-      full_command:
-        'cartoon style rocket launching into space on black background, plain style, simple, stock photo --v 6.0 --ar 16:9',
-      enqueue_time: '2024-07-27 00:59:53.977881+00:00',
-      width: 1456,
-      height: 816,
-      batch_size: 1,
-      published: true,
-      username: 'novacityrevolutions',
-      user_id: '1323622d-9a48-4397-8217-947782c3674d',
       service: 'main',
       parsed_version: '6.0',
       current_status: 'completed',
