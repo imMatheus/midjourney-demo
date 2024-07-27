@@ -1,25 +1,33 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 interface GridProps {}
 
-export const Grid: React.FC<GridProps> = ({}) => {
-  const GRID_COLUMNS = 3
-  const GRID_GAP = 5
-  const gridRef = useRef<HTMLDivElement>(null)
+const GRID_COLUMNS = 3
+const GRID_GAP = 5
 
-  const gridState = useMemo(() => {
-    if (!gridRef.current) return
+export const Grid: React.FC<GridProps> = ({}) => {
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [gridState, setGridState] = useState<{
+    gridColumnHeights: Record<string, number>
+    images: Record<
+      string,
+      { width: number; height: number; top: number; left: number }
+    >
+  } | null>(null)
+
+  const calculateGridState = (columns = GRID_COLUMNS) => {
+    if (!gridRef.current) return null
 
     const state = {
-      gridColumnHeights: {
-        '0': 0,
-        '1': 0,
-        '2': 0,
-      } as Record<string, number>,
+      gridColumnHeights: {} as Record<string, number>,
       images: {} as Record<
         string,
         { width: number; height: number; top: number; left: number }
       >,
+    }
+
+    for (let i = 0; i < columns; i++) {
+      state.gridColumnHeights[i] = 0
     }
 
     res.jobs.forEach((job) => {
@@ -32,8 +40,8 @@ export const Grid: React.FC<GridProps> = ({}) => {
       )
 
       const width =
-        (gridRef.current?.clientWidth ?? 0) / GRID_COLUMNS -
-        GRID_GAP / (GRID_COLUMNS - 1.5)
+        ((gridRef.current?.clientWidth ?? 0) - GRID_GAP * (columns - 1)) /
+        columns
       const aspectRatio = job.height / job.width
       const height = width * aspectRatio
 
@@ -45,47 +53,75 @@ export const Grid: React.FC<GridProps> = ({}) => {
       }
 
       state.gridColumnHeights[minColumn] += height + GRID_GAP
-
-      console.log(minColumn)
     })
 
     return state
+  }
+
+  useEffect(() => {
+    const handleResize = (columns?: number) => {
+      setGridState(calculateGridState(columns))
+    }
+
+    window.addEventListener('resize', (e) => {
+      console.log(e)
+
+      const windowWidth = window.innerWidth
+      const columns =
+        windowWidth > 1530
+          ? 5
+          : windowWidth > 1140
+          ? 4
+          : windowWidth > 760
+          ? 3
+          : 2
+
+      handleResize(columns)
+    })
+    handleResize() // Initial call to set up grid
+
+    return () => {
+      window.removeEventListener('resize', () => handleResize())
+    }
   }, [gridRef.current])
 
   return (
-    <div
-      className="relative"
-      ref={gridRef}
-      style={{
-        height: gridState?.gridColumnHeights
-          ? `${Math.max(...Object.values(gridState?.gridColumnHeights))}px`
-          : '0px',
-      }}
-    >
-      {res.jobs.map((job, index) => {
-        const stateCell = gridState?.images[job.id]
-        if (!stateCell) return null
+    <div className="p-5">
+      <div
+        className="relative"
+        ref={gridRef}
+        style={{
+          height: gridState?.gridColumnHeights
+            ? `${Math.max(...Object.values(gridState?.gridColumnHeights))}px`
+            : '0px',
+        }}
+      >
+        {res.jobs.map((job, index) => {
+          const stateCell = gridState?.images[job.id]
+          if (!stateCell) return null
 
-        return (
-          <div
-            key={job.id}
-            className="absolute rounded-sm overflow-hidden"
-            style={{
-              width: `${stateCell.width}px`,
-              height: `${stateCell.height}px`,
-              left: `${stateCell.left}px`,
-              top: `${stateCell.top}px`,
-            }}
-          >
-            <div className="">
-              <img
-                src={`https://cdn.midjourney.com/${job.parent_id}/0_0_384_N.webp`}
-                alt="some"
-              />
+          return (
+            <div
+              key={job.id}
+              className="absolute rounded-sm overflow-hidden"
+              style={{
+                width: `${stateCell.width}px`,
+                height: `${stateCell.height}px`,
+                left: `${stateCell.left}px`,
+                top: `${stateCell.top}px`,
+              }}
+            >
+              <div className="">
+                <img
+                  src={`https://cdn.midjourney.com/${job.parent_id}/0_0_384_N.webp`}
+                  alt="some"
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
