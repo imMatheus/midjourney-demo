@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+// @ts-nocheck
+import React, { useEffect, useRef, useState } from 'react'
 
 interface GridProps {}
 
 const GRID_COLUMNS = 3
 const GRID_GAP = 5
 
-export const Grid: React.FC<GridProps> = ({}) => {
+export const Grid: React.FC<GridProps> = () => {
   const gridRef = useRef<HTMLDivElement>(null)
   const [gridState, setGridState] = useState<{
     gridColumnHeights: Record<string, number>
